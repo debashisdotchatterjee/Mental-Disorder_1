@@ -1,50 +1,64 @@
 import matplotlib.pyplot as plt
-from matplotlib.patches import FancyBboxPatch
-# Create figure
-fig, ax = plt.subplots(figsize=(12, 3))
+from matplotlib.patches import FancyBboxPatch, Arrow
+import matplotlib.patheffects as pe
+
+# Helper to draw a professional box with consistent style
+def draw_box(ax, text, xy, width, height, facecolor, edgecolor='black', fontsize=11):
+    box = FancyBboxPatch(xy, width, height,
+                         boxstyle="round,pad=0.02",
+                         ec=edgecolor, fc=facecolor, lw=1.8,
+                         path_effects=[pe.withStroke(linewidth=2, foreground="black")])
+    ax.add_patch(box)
+    ax.text(xy[0] + width / 2, xy[1] + height / 2, text,
+            ha="center", va="center", fontsize=fontsize, weight='bold')
+
+# Create figure and axis
+fig, ax = plt.subplots(figsize=(12, 8))
+ax.set_xlim(0, 10)
+ax.set_ylim(0, 12)
 ax.axis('off')
 
-# Box settings
-boxes = [
-    ("Data\nIngestion", 0.02, 0.5),
-    ("Imbalance\nMitigation\nweights & SMOTE", 0.22, 0.5),
-    ("Obj‑1:\nSupervised\nClassification", 0.42, 0.5),
-    ("Obj‑2:\nSymptom\nStructure", 0.62, 0.5),
-    ("Obj‑3:\nAge‑Effect\nModelling", 0.82, 0.5),
-    ("Obj‑4:\nLatent\nClasses", 1.02, 0.5)
-]
-out_box = ("Outputs:\nMetrics • Factors • Curves • Classes", 0.62, 0.15)
+# Define box colors
+colors = {
+    "input": "#CCE5FF",          # soft blue
+    "imbalance": "#D5F5E3",      # light green
+    "objective": "#F9E79F",      # light yellow
+    "objective4": "#F5CBA7",     # light orange
+}
 
-box_w, box_h = 0.16, 0.28
-for text, x, y in boxes:
-    p = FancyBboxPatch((x, y), box_w, box_h, boxstyle="round,pad=0.02", linewidth=1)
-    ax.add_patch(p)
-    ax.text(x + box_w/2, y + box_h/2, text, ha='center', va='center', fontsize=9)
+# Draw boxes
+draw_box(ax, "Data Ingestion\n(Excel file)", xy=(1, 10), width=3, height=1.2, facecolor=colors["input"])
+draw_box(ax, "Class Imbalance\nHandling (SMOTE + Weights)", xy=(6, 10), width=3.2, height=1.2, facecolor=colors["imbalance"])
 
-# Output box
-text, x, y = out_box
-p = FancyBboxPatch((x, y), 0.3, box_h, boxstyle="round,pad=0.02", linewidth=1)
-ax.add_patch(p)
-ax.text(x + 0.15, y + box_h/2, text, ha='center', va='center', fontsize=9)
+draw_box(ax, "Objective 1:\nMulticlass Classification", xy=(1, 7.8), width=3.5, height=1.3, facecolor=colors["objective"])
+draw_box(ax, "Objective 2:\nModel Evaluation with\n10-fold CV", xy=(6, 7.8), width=3.5, height=1.3, facecolor=colors["objective"])
 
-# Arrows between main pipeline
-for i in range(len(boxes)-1):
-    x0 = boxes[i][1] + box_w
-    y0 = boxes[i][2] + box_h/2
-    x1 = boxes[i+1][1]
-    y1 = boxes[i+1][2] + box_h/2
-    ax.annotate('', (x1, y1), (x0, y0), arrowprops=dict(arrowstyle='->', lw=1))
+draw_box(ax, "Objective 3:\nAge Effects via GAMs", xy=(1, 5.2), width=3.5, height=1.2, facecolor=colors["objective"])
+draw_box(ax, "Objective 4:\nMultinomial GAM with\nAll 12 Disorders", xy=(6, 5.2), width=3.5, height=1.2, facecolor=colors["objective4"])
 
-# Arrows down to outputs
-for idx in [2,3,4,5]:
-    x0 = boxes[idx][1] + box_w/2
-    y0 = boxes[idx][2]
-    x1 = out_box[1] + 0.15
-    y1 = out_box[2] + box_h
-    ax.annotate('', (x1, y1), (x0, y0), arrowprops=dict(arrowstyle='->', lw=1))
+draw_box(ax, "Outputs:\nConfusion Matrices,\nImportance Plots,\nGAM Curves", xy=(3.5, 2.5), width=3, height=1.5, facecolor="#E8DAEF")
 
-# Save
-pdf_path = "/mnt/data/workflow_overview.pdf"
-fig.savefig(pdf_path, bbox_inches='tight')
-plt.close(fig)
-pdf_path
+# Draw arrows
+arrow_args = dict(arrowstyle="->", lw=1.5, color="black")
+def connect(center1, center2):
+    ax.annotate("", xy=center2, xytext=center1, arrowprops=arrow_args)
+
+# Arrows from top down
+connect((2.5, 10), (2.5, 9.1))  # Data -> Objective 1
+connect((2.5, 9.1), (2.5, 7.8 + 1.3))  # Objective 1
+
+connect((7.6, 10), (7.6, 9.1))  # Imbalance -> Objective 2
+connect((7.6, 9.1), (7.6, 7.8 + 1.3))
+
+connect((2.5, 7.8), (2.5, 6.4))  # Objective 1 -> Objective 3
+connect((7.6, 7.8), (7.6, 6.4))  # Objective 2 -> Objective 4
+
+connect((2.5, 5.2), (4.3, 4.0))  # Obj 3 -> Output
+connect((7.6, 5.2), (5.7, 4.0))  # Obj 4 -> Output
+
+# Save figure
+plt.tight_layout()
+plt.savefig("/mnt/data/workflow_overview_updated.pdf")
+plt.close()
+
+"/mnt/data/workflow_overview_updated.pdf"
